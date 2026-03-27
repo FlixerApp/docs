@@ -1,33 +1,45 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: "API Reference"
+description: "Complete reference voor alle Flixer Pro API endpoints"
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Base URL
 
-## Welcome
+Alle API requests gaan naar:
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
-
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
-
-## Authentication
-
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
-
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
 ```
+https://api.flixerpro.io/v1
+```
+
+## Authenticatie
+
+Alle endpoints vereisen een API-sleutel in de `X-API-Key` header:
+
+```bash
+curl -X GET "https://api.flixerpro.io/v1/leads" \
+  -H "X-API-Key: jouw_api_sleutel"
+```
+
+Zie [Authenticatie](/authentication) voor meer informatie over het aanmaken en beheren van API-sleutels.
+
+## Request formaat
+
+- **Content-Type:** `application/json` voor POST/PUT/PATCH requests
+- **Encoding:** UTF-8
+
+## Response formaat
+
+Alle responses zijn JSON. Succesvolle responses bevatten de gevraagde data. Foutresponses bevatten `statusCode`, `message`, en `error` velden.
+
+## Endpoints overzicht
+
+| Endpoint | Method | Beschrijving |
+|----------|--------|--------------|
+| `/leads` | GET | Lijst van alle leads |
+| `/leads` | POST | Nieuwe lead aanmaken |
+| `/work-items` | GET | Lijst van alle opdrachten |
+| `/address` | GET | Lijst van alle adressen |
+
+## Interactieve documentatie
+
+Gebruik de "Try it" functie op elke endpoint pagina om requests direct vanuit de documentatie te testen. Vul je API-sleutel in en pas de parameters aan.
