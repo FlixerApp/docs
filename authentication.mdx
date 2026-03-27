@@ -1,0 +1,93 @@
+---
+title: "Authenticatie"
+description: "Leer hoe je je authenticeert bij de Flixer Pro API"
+---
+
+## API-sleutels
+
+De Flixer Pro API gebruikt API-sleutels voor authenticatie. Elke request moet een geldige API-sleutel bevatten in de `X-API-Key` header.
+
+```bash
+curl -X GET "https://api.flixerpro.io/v1/leads" \
+  -H "X-API-Key: flx_live_abc123..."
+```
+
+## Sleutel aanmaken
+
+1. Ga naar **Instellingen > API-sleutels** in je [Flixer dashboard](https://app.flixerpro.io)
+2. Klik op **Nieuwe sleutel aanmaken**
+3. Geef de sleutel een beschrijvende naam
+4. Selecteer de benodigde scopes (zie hieronder)
+5. Klik op **Aanmaken**
+
+<Warning>
+  De volledige API-sleutel wordt maar één keer getoond. Kopieer deze direct en bewaar hem veilig.
+</Warning>
+
+## Scopes
+
+API-sleutels hebben scopes die bepalen welke endpoints toegankelijk zijn. Gebruik altijd de minimaal benodigde scopes.
+
+| Scope | Beschrijving | Endpoints |
+|-------|-------------|-----------|
+| `full` | Volledige toegang tot alle endpoints | Alle |
+| `leads:read` | Leads ophalen | `GET /leads` |
+| `leads:write` | Leads aanmaken | `POST /leads` |
+| `work-items:read` | Opdrachten ophalen | `GET /work-items` |
+
+### Scope kiezen
+
+- **Website contactformulier**: `leads:write`
+- **CRM synchronisatie**: `leads:read` + `work-items:read`
+- **Volledige integratie**: `full`
+
+## Sleutels beheren
+
+### Sleutel intrekken
+
+Als een sleutel gecompromitteerd is of niet meer nodig is:
+
+1. Ga naar **Instellingen > API-sleutels**
+2. Zoek de sleutel in de lijst
+3. Klik op **Intrekken**
+
+<Warning>
+  Ingetrokken sleutels werken direct niet meer. Zorg dat je applicatie een nieuwe sleutel gebruikt voordat je de oude intrekt.
+</Warning>
+
+## Beveiligingstips
+
+<AccordionGroup>
+  <Accordion title="Sla sleutels nooit op in code">
+    Gebruik environment variables of een secrets manager:
+
+    ```javascript
+    // Goed
+    const apiKey = process.env.FLIXER_API_KEY;
+
+    // Fout - nooit doen!
+    const apiKey = "flx_live_abc123...";
+    ```
+  </Accordion>
+
+  <Accordion title="Gebruik server-side calls">
+    Maak API calls altijd vanaf je backend, nooit direct vanuit de browser. API-sleutels in frontend code zijn zichtbaar voor iedereen.
+  </Accordion>
+
+  <Accordion title="Roteer sleutels regelmatig">
+    Maak periodiek nieuwe sleutels aan en trek oude in. Dit beperkt de impact als een sleutel onbedoeld gelekt is.
+  </Accordion>
+
+  <Accordion title="Gebruik minimale scopes">
+    Geef elke sleutel alleen de scopes die nodig zijn. Een contactformulier heeft geen `full` toegang nodig.
+  </Accordion>
+</AccordionGroup>
+
+## Foutcodes
+
+| HTTP Status | Betekenis |
+|-------------|-----------|
+| `401 Unauthorized` | API-sleutel ontbreekt of is ongeldig |
+| `403 Forbidden` | Sleutel heeft niet de benodigde scope |
+
+Zie [Foutafhandeling](/error-handling) voor meer details.
