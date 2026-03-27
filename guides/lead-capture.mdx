@@ -1,0 +1,224 @@
+---
+title: "Leads aanmaken"
+description: "Integreer lead capture vanaf je website naar Flixer"
+---
+
+## Overzicht
+
+Met de Flixer API kun je leads rechtstreeks vanaf je website naar Flixer sturen. Elke lead bevat:
+
+- **Adresgegevens** - Waar de klus uitgevoerd moet worden
+- **Klantgegevens** - Contactinformatie van de klant
+- **Opdrachtgegevens** - Beschrijving van de gewenste werkzaamheden
+
+## Endpoint
+
+```
+POST https://api.flixerpro.io/v1/leads
+```
+
+**Vereiste scope:** `leads:write`
+
+## Request velden
+
+### Adres (verplicht)
+
+| Veld | Type | Verplicht | Voorbeeld |
+|------|------|-----------|-----------|
+| `street` | string | Ja | `"Keizersgracht"` |
+| `streetNumber` | string | Nee | `"123"` |
+| `streetNumberAddition` | string | Nee | `"A"` |
+| `postalCode` | string | Ja | `"1015 CJ"` |
+| `city` | string | Ja | `"Amsterdam"` |
+| `country` | string | Nee | `"Nederland"` |
+
+### Klant (verplicht)
+
+| Veld | Type | Verplicht | Voorbeeld |
+|------|------|-----------|-----------|
+| `customerName` | string | Ja | `"Jan de Vries"` |
+| `firstName` | string | Nee | `"Jan"` |
+| `lastName` | string | Nee | `"de Vries"` |
+| `email` | string | Nee | `"jan@voorbeeld.nl"` |
+| `phone` | string | Nee | `"+31612345678"` |
+| `companyName` | string | Nee | `"De Vries B.V."` |
+
+<Note>
+  Als `companyName` is ingevuld, wordt de klant als zakelijke klant geregistreerd.
+</Note>
+
+### Opdracht (verplicht)
+
+| Veld | Type | Verplicht | Voorbeeld |
+|------|------|-----------|-----------|
+| `title` | string | Ja | `"Lekkage badkamer"` |
+| `description` | string | Nee | `"Waterdruppels op het plafond"` |
+| `category` | string | Nee | `"Loodgieter"` |
+| `priority` | enum | Nee | `"medium"` |
+| `budgetQuote` | string | Nee | `"€500 - €1000"` |
+| `notes` | string | Nee | `"Graag snel contact"` |
+
+**Priority waarden:** `low`, `medium`, `high`, `urgent`
+
+## Volledig voorbeeld
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.flixerpro.io/v1/leads" \
+  -H "X-API-Key: jouw_api_sleutel" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "street": "Keizersgracht",
+    "streetNumber": "123",
+    "streetNumberAddition": "A",
+    "postalCode": "1015 CJ",
+    "city": "Amsterdam",
+    "country": "Nederland",
+    "customerName": "Jan de Vries",
+    "firstName": "Jan",
+    "lastName": "de Vries",
+    "email": "jan@voorbeeld.nl",
+    "phone": "+31612345678",
+    "title": "Lekkage badkamer",
+    "description": "Klant meldt waterschade aan het plafond in de badkamer. Vermoedelijk komt het van de bovenverdieping.",
+    "category": "Loodgieter",
+    "priority": "high",
+    "budgetQuote": "€500 - €1000",
+    "notes": "Graag zo snel mogelijk contact opnemen"
+  }'
+```
+
+```javascript JavaScript
+async function createLead(formData) {
+  const response = await fetch("https://api.flixerpro.io/v1/leads", {
+    method: "POST",
+    headers: {
+      "X-API-Key": process.env.FLIXER_API_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      // Adres
+      street: formData.street,
+      streetNumber: formData.streetNumber,
+      postalCode: formData.postalCode,
+      city: formData.city,
+      // Klant
+      customerName: `${formData.firstName} ${formData.lastName}`,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      // Opdracht
+      title: formData.subject,
+      description: formData.message,
+      category: formData.category
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+```
+
+```python Python
+import requests
+import os
+
+def create_lead(form_data):
+    response = requests.post(
+        "https://api.flixerpro.io/v1/leads",
+        headers={
+            "X-API-Key": os.environ["FLIXER_API_KEY"],
+            "Content-Type": "application/json"
+        },
+        json={
+            # Adres
+            "street": form_data["street"],
+            "streetNumber": form_data["street_number"],
+            "postalCode": form_data["postal_code"],
+            "city": form_data["city"],
+            # Klant
+            "customerName": f"{form_data['first_name']} {form_data['last_name']}",
+            "firstName": form_data["first_name"],
+            "lastName": form_data["last_name"],
+            "email": form_data["email"],
+            "phone": form_data["phone"],
+            # Opdracht
+            "title": form_data["subject"],
+            "description": form_data["message"],
+            "category": form_data.get("category")
+        }
+    )
+
+    response.raise_for_status()
+    return response.json()
+```
+</CodeGroup>
+
+## Response
+
+Bij succes ontvang je de aangemaakte lead:
+
+```json
+{
+  "id": "WRKabc123def456ghi789",
+  "brandId": "BRAabc123...",
+  "customerId": "CUSabc123...",
+  "addressId": "ADRabc123...",
+  "title": "Lekkage badkamer",
+  "description": "Klant meldt waterschade aan het plafond...",
+  "status": "request",
+  "priority": "high",
+  "source": "web",
+  "receivedAt": "2026-03-27T10:30:00.000Z",
+  "createdAt": "2026-03-27T10:30:00.000Z"
+}
+```
+
+<Tip>
+  Bewaar het `id` van de aangemaakte lead als je later de status wilt opvragen.
+</Tip>
+
+## Foutafhandeling
+
+```javascript
+async function createLeadWithErrorHandling(formData) {
+  try {
+    const response = await fetch("https://api.flixerpro.io/v1/leads", {
+      method: "POST",
+      headers: {
+        "X-API-Key": process.env.FLIXER_API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(formData)
+    });
+
+    if (response.status === 401) {
+      console.error("Ongeldige API-sleutel");
+      return { success: false, error: "auth_error" };
+    }
+
+    if (response.status === 422) {
+      const error = await response.json();
+      console.error("Validatiefout:", error);
+      return { success: false, error: "validation_error", details: error };
+    }
+
+    if (!response.ok) {
+      console.error("Onverwachte fout:", response.status);
+      return { success: false, error: "server_error" };
+    }
+
+    const lead = await response.json();
+    return { success: true, lead };
+  } catch (error) {
+    console.error("Netwerkfout:", error);
+    return { success: false, error: "network_error" };
+  }
+}
+```
+
+Zie [Foutafhandeling](/error-handling) voor alle foutcodes.
