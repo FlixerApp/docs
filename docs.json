@@ -1,7 +1,9 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "dark",
   "name": "Flixer Pro API",
+  "appearance": {
+    "default": "dark"
+  },
   "colors": {
     "primary": "#0057FF",
     "light": "#0057FF",
