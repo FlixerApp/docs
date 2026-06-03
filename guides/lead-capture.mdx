@@ -14,7 +14,7 @@ Met de Flixer API kun je leads rechtstreeks vanaf je website naar Flixer sturen.
 ## Endpoint
 
 ```
-POST https://api.flixerpro.io/v1/leads
+POST https://api.flixerpro.io/v1/api/leads
 ```
 
 **Vereiste scope:** `leads:write`
@@ -58,13 +58,13 @@ POST https://api.flixerpro.io/v1/leads
 | `budgetQuote` | string | Nee | `"€500 - €1000"` |
 | `notes` | string | Nee | `"Graag snel contact"` |
 
-**Priority waarden:** `low`, `medium`, `high`, `urgent`
+**Priority waarden:** `low`, `medium`, `high`, `urgent` (standaard: `medium`)
 
 ## Volledig voorbeeld
 
 <CodeGroup>
 ```bash cURL
-curl -X POST "https://api.flixerpro.io/v1/leads" \
+curl -X POST "https://api.flixerpro.io/v1/api/leads" \
   -H "X-API-Key: jouw_api_sleutel" \
   -H "Content-Type: application/json" \
   -d '{
@@ -90,7 +90,7 @@ curl -X POST "https://api.flixerpro.io/v1/leads" \
 
 ```javascript JavaScript
 async function createLead(formData) {
-  const response = await fetch("https://api.flixerpro.io/v1/leads", {
+  const response = await fetch("https://api.flixerpro.io/v1/api/leads", {
     method: "POST",
     headers: {
       "X-API-Key": process.env.FLIXER_API_KEY,
@@ -129,7 +129,7 @@ import os
 
 def create_lead(form_data):
     response = requests.post(
-        "https://api.flixerpro.io/v1/leads",
+        "https://api.flixerpro.io/v1/api/leads",
         headers={
             "X-API-Key": os.environ["FLIXER_API_KEY"],
             "Content-Type": "application/json"
@@ -167,7 +167,7 @@ Bij succes ontvang je de aangemaakte lead:
   "id": "WRKabc123def456ghi789",
   "brandId": "BRAabc123...",
   "customerId": "CUSabc123...",
-  "addressId": "ADRabc123...",
+  "addressId": "ADDabc123...",
   "title": "Lekkage badkamer",
   "description": "Klant meldt waterschade aan het plafond...",
   "status": "request",
@@ -178,16 +178,37 @@ Bij succes ontvang je de aangemaakte lead:
 }
 ```
 
+<Note>
+  De response bevat het volledige work item-object. Naast de bovenstaande velden
+  worden ook velden als `category`, `budgetQuote`, `notes`, `estimatedCost`,
+  `finalCost`, `tags`, `scheduledStart`/`scheduledEnd`, `updatedAt`, `createdBy`
+  en `updatedBy` teruggegeven (leeg/`null` als ze niet van toepassing zijn).
+</Note>
+
 <Tip>
   Bewaar het `id` van de aangemaakte lead als je later de status wilt opvragen.
 </Tip>
 
 ## Foutafhandeling
 
+| HTTP Status | Betekenis |
+|-------------|-----------|
+| `201 Created` | Lead succesvol aangemaakt |
+| `401 Unauthorized` | API-sleutel ontbreekt of is ongeldig |
+| `403 Forbidden` | Sleutel heeft niet de `leads:write` scope |
+| `500 Internal Server Error` | Serverfout — o.a. wanneer een verplicht veld (`street`, `postalCode`, `city`, `customerName`, `title`) ontbreekt |
+
+<Warning>
+  Het endpoint voert momenteel **geen veldvalidatie** uit op de inhoud van de
+  request. Ontbrekende verplichte velden worden niet met een nette `422`
+  validatiefout afgewezen, maar leiden tot een `500`. Valideer daarom verplichte
+  velden zelf vóór het versturen.
+</Warning>
+
 ```javascript
 async function createLeadWithErrorHandling(formData) {
   try {
-    const response = await fetch("https://api.flixerpro.io/v1/leads", {
+    const response = await fetch("https://api.flixerpro.io/v1/api/leads", {
       method: "POST",
       headers: {
         "X-API-Key": process.env.FLIXER_API_KEY,
@@ -201,10 +222,9 @@ async function createLeadWithErrorHandling(formData) {
       return { success: false, error: "auth_error" };
     }
 
-    if (response.status === 422) {
-      const error = await response.json();
-      console.error("Validatiefout:", error);
-      return { success: false, error: "validation_error", details: error };
+    if (response.status === 403) {
+      console.error("Sleutel mist de leads:write scope");
+      return { success: false, error: "scope_error" };
     }
 
     if (!response.ok) {

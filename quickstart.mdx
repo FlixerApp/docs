@@ -24,12 +24,12 @@ Test je API-sleutel door de lijst met leads op te halen:
 
 <CodeGroup>
 ```bash cURL
-curl -X GET "https://api.flixerpro.io/v1/leads" \
+curl -X GET "https://api.flixerpro.io/v1/api/leads" \
   -H "X-API-Key: jouw_api_sleutel"
 ```
 
 ```javascript JavaScript
-const response = await fetch("https://api.flixerpro.io/v1/leads", {
+const response = await fetch("https://api.flixerpro.io/v1/api/leads", {
   headers: {
     "X-API-Key": "jouw_api_sleutel"
   }
@@ -42,7 +42,7 @@ console.log(data);
 import requests
 
 response = requests.get(
-    "https://api.flixerpro.io/v1/leads",
+    "https://api.flixerpro.io/v1/api/leads",
     headers={"X-API-Key": "jouw_api_sleutel"}
 )
 print(response.json())
@@ -73,7 +73,7 @@ Maak je eerste lead aan:
 
 <CodeGroup>
 ```bash cURL
-curl -X POST "https://api.flixerpro.io/v1/leads" \
+curl -X POST "https://api.flixerpro.io/v1/api/leads" \
   -H "X-API-Key: jouw_api_sleutel" \
   -H "Content-Type: application/json" \
   -d '{
@@ -90,7 +90,7 @@ curl -X POST "https://api.flixerpro.io/v1/leads" \
 ```
 
 ```javascript JavaScript
-const response = await fetch("https://api.flixerpro.io/v1/leads", {
+const response = await fetch("https://api.flixerpro.io/v1/api/leads", {
   method: "POST",
   headers: {
     "X-API-Key": "jouw_api_sleutel",
@@ -116,7 +116,7 @@ console.log("Lead aangemaakt:", lead.id);
 import requests
 
 response = requests.post(
-    "https://api.flixerpro.io/v1/leads",
+    "https://api.flixerpro.io/v1/api/leads",
     headers={
         "X-API-Key": "jouw_api_sleutel",
         "Content-Type": "application/json"
