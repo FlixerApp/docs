@@ -5,11 +5,18 @@ description: "Integreer lead capture vanaf je website naar Flixer"
 
 ## Overzicht
 
-Met de Flixer API kun je leads rechtstreeks vanaf je website naar Flixer sturen. Elke lead bevat:
+Met de Flixer API kun je leads rechtstreeks vanaf je website naar Flixer sturen. Een lead kan bevatten:
 
-- **Adresgegevens** - Waar de klus uitgevoerd moet worden
-- **Klantgegevens** - Contactinformatie van de klant
-- **Opdrachtgegevens** - Beschrijving van de gewenste werkzaamheden
+- **Klantgegevens** - Contactinformatie van de klant (verplicht)
+- **Opdrachtgegevens** - Beschrijving van de gewenste werkzaamheden (verplicht)
+- **Adresgegevens** - Waar de klus uitgevoerd moet worden (optioneel)
+
+<Note>
+  Adresgegevens zijn optioneel. Zo kun je ook leads aanmaken die alleen
+  naam/e-mail/telefoon bevatten, zoals bij Meta/Facebook Lead Ads en de
+  CSV-import. Er wordt alleen een adres aangemaakt wanneer `street`, `postalCode`
+  én `city` allemaal zijn meegegeven; een gedeeltelijk adres wordt genegeerd.
+</Note>
 
 ## Endpoint
 
@@ -21,16 +28,23 @@ POST https://api.flixerpro.io/v1/api/leads
 
 ## Request velden
 
-### Adres (verplicht)
+### Adres (optioneel)
+
+Het volledige adres is optioneel. Wil je een adres koppelen, geef dan `street`,
+`postalCode` én `city` samen mee — anders wordt het adres genegeerd en krijgt de
+lead `addressId: null`.
 
 | Veld | Type | Verplicht | Voorbeeld |
 |------|------|-----------|-----------|
-| `street` | string | Ja | `"Keizersgracht"` |
+| `street` | string | Voorwaardelijk¹ | `"Keizersgracht"` |
 | `streetNumber` | string | Nee | `"123"` |
 | `streetNumberAddition` | string | Nee | `"A"` |
-| `postalCode` | string | Ja | `"1015 CJ"` |
-| `city` | string | Ja | `"Amsterdam"` |
+| `postalCode` | string | Voorwaardelijk¹ | `"1015 CJ"` |
+| `city` | string | Voorwaardelijk¹ | `"Amsterdam"` |
 | `country` | string | Nee | `"Nederland"` |
+
+¹ Alleen verplicht als je een adres wilt aanmaken: `street`, `postalCode` en
+`city` zijn alle drie nodig of geen van alle.
 
 ### Klant (verplicht)
 
@@ -59,6 +73,24 @@ POST https://api.flixerpro.io/v1/api/leads
 | `notes` | string | Nee | `"Graag snel contact"` |
 
 **Priority waarden:** `low`, `medium`, `high`, `urgent` (standaard: `medium`)
+
+## Lead zonder adres
+
+Heb je alleen naam/e-mail/telefoon (zoals bij Meta/Facebook Lead Ads of een
+CSV-import)? Laat de adresvelden dan gewoon weg. De lead wordt aangemaakt met
+`addressId: null`.
+
+```bash cURL
+curl -X POST "https://api.flixerpro.io/v1/api/leads" \
+  -H "X-API-Key: jouw_api_sleutel" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customerName": "Jan de Vries",
+    "email": "jan@voorbeeld.nl",
+    "phone": "+31612345678",
+    "title": "Lekkage badkamer"
+  }'
+```
 
 ## Volledig voorbeeld
 
@@ -183,6 +215,7 @@ Bij succes ontvang je de aangemaakte lead:
   worden ook velden als `category`, `budgetQuote`, `notes`, `estimatedCost`,
   `finalCost`, `tags`, `scheduledStart`/`scheduledEnd`, `updatedAt`, `createdBy`
   en `updatedBy` teruggegeven (leeg/`null` als ze niet van toepassing zijn).
+  Is er geen (volledig) adres meegegeven, dan is `addressId` `null`.
 </Note>
 
 <Tip>
@@ -196,7 +229,7 @@ Bij succes ontvang je de aangemaakte lead:
 | `201 Created` | Lead succesvol aangemaakt |
 | `401 Unauthorized` | API-sleutel ontbreekt of is ongeldig |
 | `403 Forbidden` | Sleutel heeft niet de `leads:write` scope |
-| `500 Internal Server Error` | Serverfout — o.a. wanneer een verplicht veld (`street`, `postalCode`, `city`, `customerName`, `title`) ontbreekt |
+| `500 Internal Server Error` | Serverfout — o.a. wanneer een verplicht veld (`customerName`, `title`) ontbreekt |
 
 <Warning>
   Het endpoint voert momenteel **geen veldvalidatie** uit op de inhoud van de
