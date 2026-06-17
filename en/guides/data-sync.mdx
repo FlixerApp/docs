@@ -1,0 +1,225 @@
+---
+title: "Data synchronization"
+description: "Synchronize leads and work items with external systems"
+---
+
+## Overview
+
+With the Flixer API you can retrieve data for synchronization with external systems such as:
+
+- CRM systems
+- Business Intelligence tools
+- Google Sheets or Excel
+- Zapier / Make automations
+
+## Available data
+
+| Endpoint | Description | Scope |
+|----------|-------------|-------|
+| `GET /leads` | All leads (quote phase: request, contacted, quote_sent, inspection, lost) | `leads:read` |
+| `GET /work-items` | All work items (execution phase: pending, scheduled, in_progress, completed, cancelled) | `work-items:read` |
+| `GET /address` | All addresses | `full` |
+
+## Retrieving leads
+
+```
+GET https://api.flixerpro.io/v1/api/leads
+```
+
+**Query parameters:**
+
+| Parameter | Type | Default | Max | Description |
+|-----------|------|---------|-----|--------------|
+| `limit` | number | 50 | 100 | Number of results |
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.flixerpro.io/v1/api/leads?limit=100" \
+  -H "X-API-Key: your_api_key"
+```
+
+```javascript JavaScript
+async function getLeads(limit = 50) {
+  const response = await fetch(
+    `https://api.flixerpro.io/v1/api/leads?limit=${limit}`,
+    {
+      headers: {
+        "X-API-Key": process.env.FLIXER_API_KEY
+      }
+    }
+  );
+
+  const { data, limit: returnedLimit } = await response.json();
+  return data;
+}
+```
+
+```python Python
+import requests
+import os
+
+def get_leads(limit=50):
+    response = requests.get(
+        f"https://api.flixerpro.io/v1/api/leads?limit={limit}",
+        headers={"X-API-Key": os.environ["FLIXER_API_KEY"]}
+    )
+    return response.json()["data"]
+```
+</CodeGroup>
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "WKIabc123...",
+      "title": "Lekkage badkamer",
+      "status": "request",
+      "priority": "high",
+      "receivedAt": "2026-03-27T10:30:00.000Z",
+      "customer": {
+        "id": "CUSabc123...",
+        "name": "Jan de Vries",
+        "email": "jan@voorbeeld.nl",
+        "phone": "+31612345678"
+      },
+      "address": {
+        "id": "ADRabc123...",
+        "street": "Keizersgracht",
+        "streetNumber": "123",
+        "postalCode": "1015 CJ",
+        "city": "Amsterdam"
+      }
+    }
+  ],
+  "limit": 50
+}
+```
+
+## Retrieving work items
+
+```
+GET https://api.flixerpro.io/v1/api/work-items
+```
+
+Works identically to `/leads`, but returns work items that are further along in the process (scheduled, in progress, completed).
+
+## Synchronization strategies
+
+### Periodic sync
+
+Poll the API at fixed intervals (e.g. every 5 minutes):
+
+```javascript
+const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+async function syncLeads() {
+  const leads = await getLeads(100);
+
+  for (const lead of leads) {
+    await upsertToCRM(lead);
+  }
+
+  console.log(`${leads.length} leads synchronized`);
+}
+
+// Start periodic sync
+setInterval(syncLeads, SYNC_INTERVAL);
+syncLeads(); // Run first sync immediately
+```
+
+<Warning>
+  Be mindful of rate limits. Do not poll more often than necessary.
+</Warning>
+
+### Incremental sync
+
+Keep track locally of which items you already have and filter on `receivedAt`:
+
+```javascript
+let lastSyncTime = loadLastSyncTime(); // From database/file
+
+async function incrementalSync() {
+  const leads = await getLeads(100);
+
+  const newLeads = leads.filter(
+    lead => new Date(lead.receivedAt) > lastSyncTime
+  );
+
+  for (const lead of newLeads) {
+    await upsertToCRM(lead);
+  }
+
+  if (newLeads.length > 0) {
+    lastSyncTime = new Date();
+    saveLastSyncTime(lastSyncTime);
+  }
+
+  console.log(`${newLeads.length} new leads`);
+}
+```
+
+## Example: Google Sheets
+
+Synchronize leads to Google Sheets with Apps Script:
+
+```javascript
+function syncFlixerLeads() {
+  const apiKey = PropertiesService.getScriptProperties().getProperty('FLIXER_API_KEY');
+
+  const response = UrlFetchApp.fetch('https://api.flixerpro.io/v1/api/leads?limit=100', {
+    headers: { 'X-API-Key': apiKey }
+  });
+
+  const { data } = JSON.parse(response.getContentText());
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Leads');
+
+  // Headers
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['ID', 'Title', 'Customer', 'Email', 'Phone', 'City', 'Status', 'Received']);
+  }
+
+  // Data
+  const existingIds = sheet.getRange('A:A').getValues().flat();
+
+  for (const lead of data) {
+    if (!existingIds.includes(lead.id)) {
+      sheet.appendRow([
+        lead.id,
+        lead.title,
+        lead.customer?.name,
+        lead.customer?.email,
+        lead.customer?.phone,
+        lead.address?.city,
+        lead.status,
+        lead.receivedAt
+      ]);
+    }
+  }
+}
+```
+
+<Tip>
+  Set up a trigger to run `syncFlixerLeads` automatically (e.g. every hour).
+</Tip>
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Cache responses where possible">
+    If you need the same data multiple times, cache the response locally instead of making repeated API calls.
+  </Accordion>
+
+  <Accordion title="Use idempotent upserts">
+    Use the `id` field as the unique key when synchronizing. Check whether an item already exists before adding it.
+  </Accordion>
+
+  <Accordion title="Log sync results">
+    Keep track of when you last synchronized and how many items were processed. This helps with debugging.
+  </Accordion>
+
+  <Accordion title="Handle errors gracefully">
+    If a sync fails, log the error and try again later. Do not stop the entire sync because a single item fails.
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,45 @@
+---
+title: "API Reference"
+description: "Complete reference for all Flixer Pro API endpoints"
+---
+
+## Base URL
+
+All API requests go to:
+
+```
+https://api.flixerpro.io/v1/api
+```
+
+## Authentication
+
+All endpoints require an API key in the `X-API-Key` header:
+
+```bash
+curl -X GET "https://api.flixerpro.io/v1/api/leads" \
+  -H "X-API-Key: your_api_key"
+```
+
+See [Authentication](/en/authentication) for more information about creating and managing API keys.
+
+## Request format
+
+- **Content-Type:** `application/json` for POST/PUT/PATCH requests
+- **Encoding:** UTF-8
+
+## Response format
+
+All responses are JSON. Successful responses contain the requested data. Error responses contain `statusCode`, `message`, and `error` fields.
+
+## Endpoints overview
+
+| Endpoint | Method | Description |
+|----------|--------|--------------|
+| `/leads` | GET | List of all leads |
+| `/leads` | POST | Create a new lead |
+| `/work-items` | GET | List of all work items |
+| `/address` | GET | List of all addresses |
+
+## Interactive documentation
+
+Use the "Try it" feature on each endpoint page to test requests directly from the documentation. Enter your API key and adjust the parameters.

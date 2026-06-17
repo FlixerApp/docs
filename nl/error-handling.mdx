@@ -1,0 +1,234 @@
+---
+title: "Foutafhandeling"
+description: "HTTP statuscodes en foutmeldingen van de Flixer Pro API"
+---
+
+# Foutafhandeling
+
+Deze pagina beschrijft de HTTP statuscodes, het foutrespons-formaat en best
+practices voor het afhandelen van fouten in de Flixer Pro API.
+
+## HTTP Statuscodes
+
+| Code | Status | Beschrijving |
+|------|--------|--------------|
+| 200 | OK | Het verzoek is succesvol verwerkt |
+| 201 | Created | De resource is succesvol aangemaakt |
+| 400 | Bad Request | Het verzoek bevat ongeldige of ontbrekende parameters (validatiefout) |
+| 401 | Unauthorized | De `X-API-Key` header ontbreekt, of de sleutel is ongeldig of ingetrokken |
+| 403 | Forbidden | De sleutel mist de vereiste scope voor dit endpoint |
+| 404 | Not Found | De aangevraagde resource bestaat niet |
+| 429 | Too Many Requests | De rate limit is overschreden — probeer het later opnieuw |
+| 500 | Internal Server Error | Er is een onverwachte serverfout opgetreden |
+
+## Foutresponse-formaat
+
+Foutresponsen volgen het standaard NestJS-formaat met drie velden:
+
+```json
+{
+  "statusCode": 400,
+  "message": "customerName is required",
+  "error": "Bad Request"
+}
+```
+
+**Velden:**
+- `statusCode` — De HTTP statuscode (komt overeen met de response-status)
+- `message` — Een mensvriendelijke foutbeschrijving. Bij validatiefouten kan dit
+  een array van strings zijn (één per veld dat niet voldoet)
+- `error` — De HTTP status-tekst (bijv. `Bad Request`, `Unauthorized`)
+
+<Note>
+  Elke response bevat ook een `X-Request-Id` header. Bewaar deze waarde en
+  vermeld hem bij supportvragen — het maakt het mogelijk om het verzoek aan
+  serverkant terug te vinden.
+</Note>
+
+## Veelvoorkomende fouten
+
+### 400 — Bad Request (Validatiefout)
+
+**Oorzaken:**
+- Een verplicht veld ontbreekt (bijv. `customerName` of `title` bij het aanmaken
+  van een lead)
+- Een veldwaarde voldoet niet aan de regels (bijv. een veld dat te lang is)
+
+**Oplossingen:**
+1. Lees het `message`-veld van de response — het beschrijft welk veld het probleem veroorzaakt
+2. Valideer verplichte velden aan clientzijde voordat je ze verstuurt
+3. Raadpleeg de endpoint-documentatie voor de veldvereisten
+
+### 401 — Unauthorized (Niet Geauthenticeerd)
+
+**Oorzaken:**
+- De `X-API-Key` header ontbreekt in het verzoek
+- De API-sleutel is ongeldig of is ingetrokken
+
+**Oplossingen:**
+1. Zorg dat je de header meestuurt:
+   ```
+   X-API-Key: jouw_api_sleutel
+   ```
+2. Controleer of de sleutel niet is ingetrokken in **Instellingen > API-sleutels**
+3. Maak indien nodig een nieuwe sleutel aan
+
+### 403 — Forbidden (Onvoldoende Scope)
+
+**Oorzaken:**
+- De sleutel is geldig, maar mist de scope die dit endpoint vereist
+  (bijv. `leads:write` voor het aanmaken van een lead)
+
+**Oplossingen:**
+1. Controleer welke scope het endpoint vereist (zie [Authenticatie](/nl/authentication))
+2. Maak een sleutel aan met de juiste scopes, of gebruik een sleutel met de `full` scope
+
+### 429 — Too Many Requests (Rate Limit)
+
+**Oorzaken:**
+- Er zijn te veel verzoeken in korte tijd verstuurd
+
+**Oplossingen:**
+1. Implementeer retry-logica met exponential backoff (zie hieronder)
+2. Verlaag de frequentie van je verzoeken; poll niet vaker dan nodig
+
+### 500 — Internal Server Error (Serverfout)
+
+**Oorzaken:**
+- Een onverwachte fout in de servertoepassing
+
+**Oplossingen:**
+1. Deze fouten zijn meestal tijdelijk — implementeer retry-logica met exponential backoff
+2. Wacht enkele seconden en probeer opnieuw
+3. Houdt het probleem aan, vermeld dan de `X-Request-Id` aan het support team
+
+## Foutafhandeling in code
+
+### JavaScript/TypeScript
+
+```typescript
+interface ApiError {
+  statusCode: number;
+  message: string | string[];
+  error: string;
+}
+
+async function createLead(payload: Record<string, unknown>) {
+  const response = await fetch("https://api.flixerpro.io/v1/api/leads", {
+    method: "POST",
+    headers: {
+      "X-API-Key": process.env.FLIXER_API_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const err = (await response.json()) as ApiError;
+    const requestId = response.headers.get("X-Request-Id");
+
+    switch (response.status) {
+      case 400:
+        console.error("Validatiefout:", err.message);
+        break;
+      case 401:
+        console.error("Ongeldige of ontbrekende API-sleutel");
+        break;
+      case 403:
+        console.error("Sleutel mist de vereiste scope");
+        break;
+      default:
+        console.error(`API-fout ${response.status} (request ${requestId})`);
+    }
+    throw new Error(
+      Array.isArray(err.message) ? err.message.join(", ") : err.message,
+    );
+  }
+
+  return response.json();
+}
+```
+
+### Python
+
+```python
+import os
+import requests
+
+class FlixerAPIError(Exception):
+    def __init__(self, status_code: int, body: dict):
+        self.status_code = status_code
+        self.body = body
+        super().__init__(body.get("message", "Onbekende fout"))
+
+def create_lead(payload: dict) -> dict:
+    response = requests.post(
+        "https://api.flixerpro.io/v1/api/leads",
+        headers={
+            "X-API-Key": os.environ["FLIXER_API_KEY"],
+            "Content-Type": "application/json",
+        },
+        json=payload,
+        timeout=30,
+    )
+
+    if not response.ok:
+        body = response.json()
+        request_id = response.headers.get("X-Request-Id")
+        print(f"API-fout {response.status_code} (request {request_id}): {body.get('message')}")
+        raise FlixerAPIError(response.status_code, body)
+
+    return response.json()
+```
+
+## Retry-strategie
+
+Implementeer exponential backoff voor 5xx-fouten en 429:
+
+```
+Poging 1: Onmiddellijk
+Poging 2: Wacht 1 seconde
+Poging 3: Wacht 2 seconden
+Poging 4: Wacht 4 seconden
+```
+
+```typescript
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3,
+  baseDelay = 1000,
+): Promise<Response> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const response = await fetch(url, options);
+
+    // Alleen 5xx en 429 zijn de moeite van een retry waard
+    if (response.ok || (response.status < 500 && response.status !== 429)) {
+      return response;
+    }
+
+    if (attempt < maxRetries - 1) {
+      // Backoff met jitter om "thundering herd" te voorkomen
+      const delay = baseDelay * 2 ** attempt + Math.random() * 1000;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error("Max retries bereikt");
+}
+```
+
+<Warning>
+  Herhaal verzoeken alleen wanneer dat veilig is. `GET`-verzoeken zijn idempotent
+  en altijd veilig te herhalen. Wees voorzichtig met `POST /leads`: herhaal alleen
+  na een 5xx of een netwerkfout (waarbij de lead waarschijnlijk niet is
+  aangemaakt), niet na een 400/401/403.
+</Warning>
+
+## Best practices
+
+1. **Controleer altijd `response.ok`** — ga er niet vanuit dat elk verzoek slaagt
+2. **Lees het `message`-veld** — bij een 400 vertelt het precies wat er misging
+3. **Bewaar `X-Request-Id`** — onmisbaar voor supportvragen
+4. **Exponential backoff** — voor 5xx en 429, met jitter
+5. **Stel timeouts in** — voorkom dat verzoeken eindeloos blijven hangen
+6. **Gebruik minimale scopes** — beperk de impact als een sleutel lekt

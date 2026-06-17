@@ -12,59 +12,126 @@
   },
   "favicon": "/favicon.svg",
   "navigation": {
-    "tabs": [
+    "languages": [
       {
-        "tab": "Handleidingen",
-        "groups": [
+        "language": "nl",
+        "default": true,
+        "tabs": [
           {
-            "group": "Aan de slag",
-            "pages": [
-              "index",
-              "quickstart",
-              "authentication"
+            "tab": "Handleidingen",
+            "groups": [
+              {
+                "group": "Aan de slag",
+                "pages": [
+                  "nl/index",
+                  "nl/quickstart",
+                  "nl/authentication"
+                ]
+              },
+              {
+                "group": "Handleidingen",
+                "pages": [
+                  "nl/guides/lead-capture",
+                  "nl/guides/data-sync"
+                ]
+              },
+              {
+                "group": "Referentie",
+                "pages": [
+                  "nl/error-handling"
+                ]
+              }
             ]
           },
           {
-            "group": "Handleidingen",
-            "pages": [
-              "guides/lead-capture",
-              "guides/data-sync"
-            ]
-          },
-          {
-            "group": "Referentie",
-            "pages": [
-              "error-handling"
+            "tab": "API Reference",
+            "groups": [
+              {
+                "group": "API Reference",
+                "pages": [
+                  "nl/api-reference/introduction"
+                ]
+              },
+              {
+                "group": "Leads",
+                "pages": [
+                  "nl/api-reference/endpoint/leads/list-all-leads",
+                  "nl/api-reference/endpoint/leads/create-a-new-lead"
+                ]
+              },
+              {
+                "group": "Work Items",
+                "pages": [
+                  "nl/api-reference/endpoint/work-items/list-all-work-items-opdrachten"
+                ]
+              },
+              {
+                "group": "Addresses",
+                "pages": [
+                  "nl/api-reference/endpoint/address/list-all-addresses"
+                ]
+              }
             ]
           }
         ]
       },
       {
-        "tab": "API Reference",
-        "groups": [
+        "language": "en",
+        "tabs": [
           {
-            "group": "API Reference",
-            "pages": [
-              "api-reference/introduction"
+            "tab": "Guides",
+            "groups": [
+              {
+                "group": "Getting started",
+                "pages": [
+                  "en/index",
+                  "en/quickstart",
+                  "en/authentication"
+                ]
+              },
+              {
+                "group": "Guides",
+                "pages": [
+                  "en/guides/lead-capture",
+                  "en/guides/data-sync"
+                ]
+              },
+              {
+                "group": "Reference",
+                "pages": [
+                  "en/error-handling"
+                ]
+              }
             ]
           },
           {
-            "group": "Leads",
-            "pages": [
-              "api-reference/endpoint/leads/list-all-leads",
-              "api-reference/endpoint/leads/create-a-new-lead"
-            ]
-          },
-          {
-            "group": "Work Items",
-            "pages": [
-              "api-reference/endpoint/work-items/list-all-work-items-opdrachten"
-            ]
-          },
-          {
-            "group": "Addresses",
-            "pages": [
-              "api-reference/endpoint/address/list-all-addresses"
+            "tab": "API Reference",
+            "groups": [
+              {
+                "group": "API Reference",
+                "pages": [
+                  "en/api-reference/introduction"
+                ]
+              },
+              {
+                "group": "Leads",
+                "pages": [
+                  "en/api-reference/endpoint/leads/list-all-leads",
+                  "en/api-reference/endpoint/leads/create-a-new-lead"
+                ]
+              },
+              {
+                "group": "Work Items",
+                "pages": [
+                  "en/api-reference/endpoint/work-items/list-all-work-items-opdrachten"
+                ]
+              },
+              {
+                "group": "Addresses",
+                "pages": [
+                  "en/api-reference/endpoint/address/list-all-addresses"
+                ]
+              }
             ]
           }
         ]

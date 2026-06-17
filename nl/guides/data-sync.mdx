@@ -16,8 +16,8 @@ Met de Flixer API kun je data ophalen voor synchronisatie met externe systemen z
 
 | Endpoint | Beschrijving | Scope |
 |----------|-------------|-------|
-| `GET /leads` | Alle leads (status: request, quoted) | `leads:read` |
-| `GET /work-items` | Alle opdrachten (status: scheduled en verder) | `work-items:read` |
+| `GET /leads` | Alle leads (offerte-fase: request, contacted, quote_sent, inspection, lost) | `leads:read` |
+| `GET /work-items` | Alle opdrachten (uitvoer-fase: pending, scheduled, in_progress, completed, cancelled) | `work-items:read` |
 | `GET /address` | Alle adressen | `full` |
 
 ## Leads ophalen
@@ -73,7 +73,7 @@ def get_leads(limit=50):
 {
   "data": [
     {
-      "id": "WRKabc123...",
+      "id": "WKIabc123...",
       "title": "Lekkage badkamer",
       "status": "request",
       "priority": "high",
@@ -85,7 +85,7 @@ def get_leads(limit=50):
         "phone": "+31612345678"
       },
       "address": {
-        "id": "ADDabc123...",
+        "id": "ADRabc123...",
         "street": "Keizersgracht",
         "streetNumber": "123",
         "postalCode": "1015 CJ",

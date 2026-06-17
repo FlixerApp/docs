@@ -1,0 +1,93 @@
+---
+title: "Authentication"
+description: "Learn how to authenticate with the Flixer Pro API"
+---
+
+## API keys
+
+The Flixer Pro API uses API keys for authentication. Every request must include a valid API key in the `X-API-Key` header.
+
+```bash
+curl -X GET "https://api.flixerpro.io/v1/api/leads" \
+  -H "X-API-Key: flx_live_abc123..."
+```
+
+## Creating a key
+
+1. Go to **Settings > API keys** in your [Flixer dashboard](https://app.flixerpro.io)
+2. Click **Create new key**
+3. Give the key a descriptive name
+4. Select the required scopes (see below)
+5. Click **Create**
+
+<Warning>
+  The full API key is shown only once. Copy it right away and store it securely.
+</Warning>
+
+## Scopes
+
+API keys have scopes that determine which endpoints are accessible. Always use the minimum scopes required.
+
+| Scope | Description | Endpoints |
+|-------|-------------|-----------|
+| `full` | Full access to all endpoints | All |
+| `leads:read` | Retrieve leads | `GET /leads` |
+| `leads:write` | Create leads | `POST /leads` |
+| `work-items:read` | Retrieve work items | `GET /work-items` |
+
+### Choosing a scope
+
+- **Website contact form**: `leads:write`
+- **CRM synchronization**: `leads:read` + `work-items:read`
+- **Full integration**: `full`
+
+## Managing keys
+
+### Revoking a key
+
+If a key is compromised or no longer needed:
+
+1. Go to **Settings > API keys**
+2. Find the key in the list
+3. Click **Revoke**
+
+<Warning>
+  Revoked keys stop working immediately. Make sure your application uses a new key before you revoke the old one.
+</Warning>
+
+## Security tips
+
+<AccordionGroup>
+  <Accordion title="Never store keys in code">
+    Use environment variables or a secrets manager:
+
+    ```javascript
+    // Good
+    const apiKey = process.env.FLIXER_API_KEY;
+
+    // Bad - never do this!
+    const apiKey = "flx_live_abc123...";
+    ```
+  </Accordion>
+
+  <Accordion title="Use server-side calls">
+    Always make API calls from your backend, never directly from the browser. API keys in frontend code are visible to everyone.
+  </Accordion>
+
+  <Accordion title="Rotate keys regularly">
+    Periodically create new keys and revoke old ones. This limits the impact if a key is accidentally leaked.
+  </Accordion>
+
+  <Accordion title="Use minimal scopes">
+    Give each key only the scopes it needs. A contact form does not need `full` access.
+  </Accordion>
+</AccordionGroup>
+
+## Error codes
+
+| HTTP Status | Meaning |
+|-------------|-----------|
+| `401 Unauthorized` | API key is missing or invalid |
+| `403 Forbidden` | Key does not have the required scope |
+
+See [Error handling](/en/error-handling) for more details.

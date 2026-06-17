@@ -196,10 +196,10 @@ Bij succes ontvang je de aangemaakte lead:
 
 ```json
 {
-  "id": "WRKabc123def456ghi789",
-  "brandId": "BRAabc123...",
+  "id": "WKIabc123def456ghi789",
+  "brandId": "BRDabc123...",
   "customerId": "CUSabc123...",
-  "addressId": "ADDabc123...",
+  "addressId": "ADRabc123...",
   "title": "Lekkage badkamer",
   "description": "Klant meldt waterschade aan het plafond...",
   "status": "request",
@@ -227,16 +227,15 @@ Bij succes ontvang je de aangemaakte lead:
 | HTTP Status | Betekenis |
 |-------------|-----------|
 | `201 Created` | Lead succesvol aangemaakt |
+| `400 Bad Request` | Validatiefout — een verplicht veld (`customerName`, `title`) ontbreekt of een waarde voldoet niet aan de regels |
 | `401 Unauthorized` | API-sleutel ontbreekt of is ongeldig |
 | `403 Forbidden` | Sleutel heeft niet de `leads:write` scope |
-| `500 Internal Server Error` | Serverfout — o.a. wanneer een verplicht veld (`customerName`, `title`) ontbreekt |
 
-<Warning>
-  Het endpoint voert momenteel **geen veldvalidatie** uit op de inhoud van de
-  request. Ontbrekende verplichte velden worden niet met een nette `422`
-  validatiefout afgewezen, maar leiden tot een `500`. Valideer daarom verplichte
-  velden zelf vóór het versturen.
-</Warning>
+<Note>
+  De request wordt server-side gevalideerd. Ontbrekende verplichte velden
+  (`customerName`, `title`) of ongeldige waarden worden afgewezen met een
+  `400 Bad Request`; het `message`-veld in de response beschrijft wat er misging.
+</Note>
 
 ```javascript
 async function createLeadWithErrorHandling(formData) {
@@ -260,6 +259,12 @@ async function createLeadWithErrorHandling(formData) {
       return { success: false, error: "scope_error" };
     }
 
+    if (response.status === 400) {
+      const body = await response.json();
+      console.error("Validatiefout:", body.message);
+      return { success: false, error: "validation_error" };
+    }
+
     if (!response.ok) {
       console.error("Onverwachte fout:", response.status);
       return { success: false, error: "server_error" };
@@ -274,4 +279,4 @@ async function createLeadWithErrorHandling(formData) {
 }
 ```
 
-Zie [Foutafhandeling](/error-handling) voor alle foutcodes.
+Zie [Foutafhandeling](/nl/error-handling) voor alle foutcodes.
