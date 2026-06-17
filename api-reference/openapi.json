@@ -1,1 +1,1160 @@
-{"openapi":"3.0.0","paths":{"/v1/api/address":{"get":{"operationId":"PublicAddressController_list_v1","parameters":[{"name":"limit","required":false,"in":"query","schema":{"example":50,"type":"number"}}],"responses":{"200":{"description":""}},"security":[{"api-key":[]}],"summary":"List all addresses","tags":["Address"]}},"/v1/api/leads":{"get":{"operationId":"PublicLeadController_list_v1","parameters":[{"name":"limit","required":false,"in":"query","schema":{"example":50,"type":"number"}}],"responses":{"200":{"description":""}},"security":[{"api-key":[]}],"summary":"List all leads","tags":["Leads"]},"post":{"description":"Creates a customer and work item in one call, and optionally an address. An address is only created when a full street + postalCode + city is supplied; otherwise the lead is created address-less (addressId null), matching the Meta/Facebook Lead Ads and CSV import flows. A partial address is ignored. All created entities are linked together automatically.","operationId":"PublicLeadController_create_v1","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/CreateLeadDto"}}}},"responses":{"201":{"description":""}},"security":[{"api-key":[]}],"summary":"Create a new lead","tags":["Leads"]}},"/v1/api/work-items":{"get":{"operationId":"PublicWorkItemController_list_v1","parameters":[{"name":"limit","required":false,"in":"query","schema":{"example":50,"type":"number"}}],"responses":{"200":{"description":""}},"security":[{"api-key":[]}],"summary":"List all work items (opdrachten)","tags":["Work Items"]}}},"info":{"title":"Flixer Public API","description":"Customer-facing API for integrations","version":"1.0","contact":{}},"tags":[],"servers":[],"components":{"securitySchemes":{"api-key":{"type":"apiKey","in":"header","name":"X-API-Key"}},"schemas":{"CreateLeadDto":{"type":"object","properties":{"street":{"type":"string","example":"Keizersgracht","description":"Optional. An address is only created when street, postalCode and city are all provided; a partial address is ignored."},"streetNumber":{"type":"string","example":"123"},"streetNumberAddition":{"type":"string","example":"A"},"postalCode":{"type":"string","example":"1015 CJ","description":"Optional. Required together with street and city for an address to be created."},"city":{"type":"string","example":"Amsterdam","description":"Optional. Required together with street and postalCode for an address to be created."},"country":{"type":"string","example":"Nederland"},"customerName":{"type":"string","example":"Jan de Vries","description":"Full display name"},"firstName":{"type":"string","example":"Jan"},"lastName":{"type":"string","example":"de Vries"},"email":{"type":"string","example":"jan@voorbeeld.nl"},"phone":{"type":"string","example":"+31612345678"},"companyName":{"type":"string","example":"Installatiebedrijf De Vries B.V."},"title":{"type":"string","example":"Lekkage badkamer"},"description":{"type":"string","example":"Klant meldt waterschade aan het plafond"},"category":{"type":"string","example":"Loodgieter","description":"Opdracht type / categorie"},"priority":{"type":"string","enum":["low","medium","high","urgent"],"default":"medium"},"budgetQuote":{"type":"string","example":"€500 - €1000","description":"Budget bereik"},"notes":{"type":"string","example":"Graag zo snel mogelijk contact opnemen"}},"required":["customerName","title"]}}}}
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/v1/api/address": {
+      "get": {
+        "operationId": "PublicAddressController_list_v1",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked X-API-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this endpoint (full).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List all addresses",
+        "tags": [
+          "Address"
+        ]
+      }
+    },
+    "/v1/api/leads": {
+      "get": {
+        "operationId": "PublicLeadController_list_v1",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked X-API-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this endpoint.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List all leads",
+        "tags": [
+          "Leads"
+        ]
+      },
+      "post": {
+        "description": "Creates a customer and work item (and an address when one is supplied) in one call, linked together automatically. Address is optional: lead sources like Meta/Facebook Lead Ads collect only name/email/phone, so a lead with no street/postalCode/city is created address-less. Photos are optional: pass publicly downloadable https URLs in photoUrls (max 10) and they are downloaded and attached to the lead as assets. Photo ingestion is best-effort — failures never fail the lead and are reported per URL in the `photos` field of the response. Customers are deduplicated: when a non-archived customer in the brand matches the submitted email (case-insensitive) or phone (last 9 digits), the lead is attached to that customer instead of creating a duplicate. On email matches, a missing phone/address on the existing record is backfilled and noted on the lead; phone-matched records are never modified (the submitted email did not match, so it is not trusted).",
+        "operationId": "PublicLeadController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLeadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateLeadResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (e.g. missing customerName or title).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked X-API-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this endpoint.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Create a new lead",
+        "tags": [
+          "Leads"
+        ]
+      }
+    },
+    "/v1/api/work-items": {
+      "get": {
+        "operationId": "PublicWorkItemController_list_v1",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkItemListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked X-API-Key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this endpoint.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List all work items (opdrachten)",
+        "tags": [
+          "Work Items"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Flixer Public API",
+    "description": "Customer-facing API for integrations",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "https://api.flixerpro.io"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "api-key": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    },
+    "schemas": {
+      "ErrorResponseDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 400,
+            "description": "HTTP status code."
+          },
+          "message": {
+            "type": "string",
+            "example": "customerName is required",
+            "description": "Human-readable error message. For validation errors this may be an array of strings, one per failed field."
+          },
+          "error": {
+            "type": "string",
+            "example": "Bad Request",
+            "description": "HTTP status text."
+          }
+        },
+        "required": [
+          "statusCode",
+          "message",
+          "error"
+        ]
+      },
+      "AddressResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ADRabc123def456ghi789jkl"
+          },
+          "brandId": {
+            "type": "string",
+            "example": "BRDabc123def456ghi789jkl"
+          },
+          "country": {
+            "type": "string",
+            "nullable": true,
+            "example": "Nederland"
+          },
+          "stateProvince": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "city": {
+            "type": "string",
+            "example": "Amsterdam"
+          },
+          "postalCode": {
+            "type": "string",
+            "example": "1015 CJ"
+          },
+          "street": {
+            "type": "string",
+            "example": "Keizersgracht"
+          },
+          "streetNumber": {
+            "type": "string",
+            "nullable": true,
+            "example": "123"
+          },
+          "streetNumberAddition": {
+            "type": "string",
+            "nullable": true,
+            "example": "A"
+          },
+          "latitude": {
+            "type": "number",
+            "nullable": true,
+            "example": 52.3676
+          },
+          "longitude": {
+            "type": "number",
+            "nullable": true,
+            "example": 4.9041
+          },
+          "locationNotes": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          }
+        },
+        "required": [
+          "id",
+          "brandId",
+          "country",
+          "stateProvince",
+          "city",
+          "postalCode",
+          "street",
+          "streetNumber",
+          "streetNumberAddition",
+          "latitude",
+          "longitude",
+          "locationNotes"
+        ]
+      },
+      "AddressListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AddressResponseDto"
+            }
+          },
+          "limit": {
+            "type": "number",
+            "example": 50,
+            "description": "Effective limit applied (max 100)."
+          }
+        },
+        "required": [
+          "data",
+          "limit"
+        ]
+      },
+      "CustomerResponseDto": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-17T10:30:45.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-17T10:30:45.000Z"
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true,
+            "example": null,
+            "description": "Brand member who created the record, or null when created by the system (e.g. a lead created through the public API)."
+          },
+          "updatedBy": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "id": {
+            "type": "string",
+            "example": "CUSabc123def456ghi789jkl"
+          },
+          "brandId": {
+            "type": "string",
+            "example": "BRDabc123def456ghi789jkl"
+          },
+          "name": {
+            "type": "string",
+            "example": "Jan de Vries",
+            "description": "Full display name."
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true,
+            "example": "Jan"
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true,
+            "example": "de Vries"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true,
+            "example": "jan@voorbeeld.nl"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "example": "+31612345678"
+          },
+          "secondaryPhone": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "companyName": {
+            "type": "string",
+            "nullable": true,
+            "example": "Installatiebedrijf De Vries B.V."
+          },
+          "isCompany": {
+            "type": "boolean",
+            "example": false
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "blocked"
+            ],
+            "example": "active"
+          },
+          "addressId": {
+            "type": "string",
+            "nullable": true,
+            "example": "ADRabc123def456ghi789jkl"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "tags": {
+            "nullable": true,
+            "example": null,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "createdAt",
+          "updatedAt",
+          "createdBy",
+          "updatedBy",
+          "deletedAt",
+          "archivedAt",
+          "id",
+          "brandId",
+          "name",
+          "firstName",
+          "lastName",
+          "email",
+          "phone",
+          "secondaryPhone",
+          "companyName",
+          "isCompany",
+          "status",
+          "addressId",
+          "notes",
+          "tags"
+        ]
+      },
+      "WorkItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-17T10:30:45.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-17T10:30:45.000Z"
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true,
+            "example": null,
+            "description": "Brand member who created the record, or null when created by the system (e.g. a lead created through the public API)."
+          },
+          "updatedBy": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "id": {
+            "type": "string",
+            "example": "WKIabc123def456ghi789jkl"
+          },
+          "brandId": {
+            "type": "string",
+            "example": "BRDabc123def456ghi789jkl"
+          },
+          "customerId": {
+            "type": "string",
+            "example": "CUSabc123def456ghi789jkl"
+          },
+          "title": {
+            "type": "string",
+            "example": "Lekkage badkamer"
+          },
+          "description": {
+            "type": "string",
+            "example": "Klant meldt waterschade aan het plafond"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "request",
+              "contacted",
+              "quote_sent",
+              "inspection",
+              "lost",
+              "pending",
+              "scheduled",
+              "in_progress",
+              "completed",
+              "cancelled"
+            ],
+            "example": "request",
+            "description": "Lead-phase statuses (request, contacted, quote_sent, inspection, lost) are returned by GET /leads; job-phase statuses (pending, scheduled, in_progress, completed, cancelled) by GET /work-items."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ],
+            "example": "medium"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true,
+            "example": "Loodgieter"
+          },
+          "customerSignature": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "scheduledStart": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "scheduledEnd": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "actualStart": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "actualEnd": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "web",
+              "phone",
+              "chat",
+              "referral",
+              "other",
+              "whatsapp",
+              "email",
+              "manual"
+            ],
+            "example": "web"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-17T10:30:45.000Z"
+          },
+          "addressId": {
+            "type": "string",
+            "nullable": true,
+            "example": "ADRabc123def456ghi789jkl"
+          },
+          "customStatusId": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "estimatedCost": {
+            "type": "number",
+            "nullable": true,
+            "example": null,
+            "description": "Estimated cost in cents."
+          },
+          "finalCost": {
+            "type": "number",
+            "nullable": true,
+            "example": null,
+            "description": "Final cost in cents."
+          },
+          "budgetQuote": {
+            "type": "string",
+            "nullable": true,
+            "example": "€500 - €1000"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "completionNotes": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "tags": {
+            "nullable": true,
+            "example": null,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "customer": {
+            "description": "Populated in the list endpoints (GET /leads, GET /work-items).",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomerResponseDto"
+              }
+            ]
+          },
+          "address": {
+            "nullable": true,
+            "description": "Populated in the list endpoints; null when the lead is address-less.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AddressResponseDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "createdAt",
+          "updatedAt",
+          "createdBy",
+          "updatedBy",
+          "deletedAt",
+          "archivedAt",
+          "id",
+          "brandId",
+          "customerId",
+          "title",
+          "description",
+          "status",
+          "priority",
+          "category",
+          "customerSignature",
+          "scheduledStart",
+          "scheduledEnd",
+          "actualStart",
+          "actualEnd",
+          "source",
+          "receivedAt",
+          "addressId",
+          "customStatusId",
+          "estimatedCost",
+          "finalCost",
+          "budgetQuote",
+          "notes",
+          "completionNotes",
+          "tags"
+        ]
+      },
+      "LeadListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkItemResponseDto"
+            }
+          },
+          "limit": {
+            "type": "number",
+            "example": 50,
+            "description": "Effective limit applied (max 100)."
+          }
+        },
+        "required": [
+          "data",
+          "limit"
+        ]
+      },
+      "CreateLeadDto": {
+        "type": "object",
+        "properties": {
+          "street": {
+            "type": "string",
+            "example": "Keizersgracht"
+          },
+          "streetNumber": {
+            "type": "string",
+            "example": "123"
+          },
+          "streetNumberAddition": {
+            "type": "string",
+            "example": "A"
+          },
+          "postalCode": {
+            "type": "string",
+            "example": "1015 CJ"
+          },
+          "city": {
+            "type": "string",
+            "example": "Amsterdam"
+          },
+          "country": {
+            "type": "string",
+            "example": "Nederland"
+          },
+          "customerName": {
+            "type": "string",
+            "example": "Jan de Vries",
+            "description": "Full display name"
+          },
+          "firstName": {
+            "type": "string",
+            "example": "Jan"
+          },
+          "lastName": {
+            "type": "string",
+            "example": "de Vries"
+          },
+          "email": {
+            "type": "string",
+            "example": "jan@voorbeeld.nl"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+31612345678"
+          },
+          "companyName": {
+            "type": "string",
+            "example": "Installatiebedrijf De Vries B.V."
+          },
+          "title": {
+            "type": "string",
+            "example": "Lekkage badkamer"
+          },
+          "description": {
+            "type": "string",
+            "example": "Klant meldt waterschade aan het plafond"
+          },
+          "category": {
+            "type": "string",
+            "example": "Loodgieter",
+            "description": "Job type / category"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ],
+            "default": "medium"
+          },
+          "budgetQuote": {
+            "type": "string",
+            "example": "€500 - €1000",
+            "description": "Budget range"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Graag zo snel mogelijk contact opnemen"
+          },
+          "photoUrls": {
+            "maxItems": 10,
+            "example": [
+              "https://api.widget.flixerpro.io/v1/image/b91aca1e.jpeg"
+            ],
+            "description": "Publicly downloadable https image URLs to attach to the lead (max 10). Downloaded server-side and attached as brand assets; best-effort, so a failed download never fails the lead and is reported per URL in the `photos` field of the response.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "customerName",
+          "title"
+        ]
+      },
+      "LeadPhotoResultDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "example": "https://api.widget.flixerpro.io/v1/image/b91aca1e.jpeg",
+            "description": "The photo URL exactly as supplied in the request."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "attached",
+              "failed"
+            ],
+            "example": "attached"
+          },
+          "assetId": {
+            "type": "string",
+            "example": "ASTabc123def456ghi789jkl",
+            "description": "Asset id created for the photo, present when status=attached."
+          },
+          "reason": {
+            "type": "string",
+            "example": "Download failed with status 404",
+            "description": "Failure reason, present when status=failed."
+          }
+        },
+        "required": [
+          "url",
+          "status"
+        ]
+      },
+      "CreateLeadResponseDto": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-17T10:30:45.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-17T10:30:45.000Z"
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true,
+            "example": null,
+            "description": "Brand member who created the record, or null when created by the system (e.g. a lead created through the public API)."
+          },
+          "updatedBy": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "id": {
+            "type": "string",
+            "example": "WKIabc123def456ghi789jkl"
+          },
+          "brandId": {
+            "type": "string",
+            "example": "BRDabc123def456ghi789jkl"
+          },
+          "customerId": {
+            "type": "string",
+            "example": "CUSabc123def456ghi789jkl"
+          },
+          "title": {
+            "type": "string",
+            "example": "Lekkage badkamer"
+          },
+          "description": {
+            "type": "string",
+            "example": "Klant meldt waterschade aan het plafond"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "request",
+              "contacted",
+              "quote_sent",
+              "inspection",
+              "lost",
+              "pending",
+              "scheduled",
+              "in_progress",
+              "completed",
+              "cancelled"
+            ],
+            "example": "request",
+            "description": "Lead-phase statuses (request, contacted, quote_sent, inspection, lost) are returned by GET /leads; job-phase statuses (pending, scheduled, in_progress, completed, cancelled) by GET /work-items."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ],
+            "example": "medium"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true,
+            "example": "Loodgieter"
+          },
+          "customerSignature": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "scheduledStart": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "scheduledEnd": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "actualStart": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "actualEnd": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "web",
+              "phone",
+              "chat",
+              "referral",
+              "other",
+              "whatsapp",
+              "email",
+              "manual"
+            ],
+            "example": "web"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-17T10:30:45.000Z"
+          },
+          "addressId": {
+            "type": "string",
+            "nullable": true,
+            "example": "ADRabc123def456ghi789jkl"
+          },
+          "customStatusId": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "estimatedCost": {
+            "type": "number",
+            "nullable": true,
+            "example": null,
+            "description": "Estimated cost in cents."
+          },
+          "finalCost": {
+            "type": "number",
+            "nullable": true,
+            "example": null,
+            "description": "Final cost in cents."
+          },
+          "budgetQuote": {
+            "type": "string",
+            "nullable": true,
+            "example": "€500 - €1000"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "completionNotes": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "tags": {
+            "nullable": true,
+            "example": null,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "customer": {
+            "description": "Populated in the list endpoints (GET /leads, GET /work-items).",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomerResponseDto"
+              }
+            ]
+          },
+          "address": {
+            "nullable": true,
+            "description": "Populated in the list endpoints; null when the lead is address-less.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AddressResponseDto"
+              }
+            ]
+          },
+          "photos": {
+            "description": "Present only when photoUrls were supplied. One entry per URL, in order.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeadPhotoResultDto"
+            }
+          }
+        },
+        "required": [
+          "createdAt",
+          "updatedAt",
+          "createdBy",
+          "updatedBy",
+          "deletedAt",
+          "archivedAt",
+          "id",
+          "brandId",
+          "customerId",
+          "title",
+          "description",
+          "status",
+          "priority",
+          "category",
+          "customerSignature",
+          "scheduledStart",
+          "scheduledEnd",
+          "actualStart",
+          "actualEnd",
+          "source",
+          "receivedAt",
+          "addressId",
+          "customStatusId",
+          "estimatedCost",
+          "finalCost",
+          "budgetQuote",
+          "notes",
+          "completionNotes",
+          "tags"
+        ]
+      },
+      "WorkItemListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkItemResponseDto"
+            }
+          },
+          "limit": {
+            "type": "number",
+            "example": 50,
+            "description": "Effective limit applied (max 100)."
+          }
+        },
+        "required": [
+          "data",
+          "limit"
+        ]
+      }
+    }
+  }
+}
