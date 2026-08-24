@@ -11,6 +11,14 @@
     "dark": "#0057FF"
   },
   "favicon": "/favicon.svg",
+  "seo": {
+    "organization": {
+      "id": "https://www.flixerpro.io#organization",
+      "name": "Flixer Pro",
+      "url": "https://www.flixerpro.io",
+      "logo": "https://www.flixerpro.io/flixer-pro.png"
+    }
+  },
   "navigation": {
     "languages": [
       {
